@@ -4,6 +4,7 @@ library(ggplot2)
 library(ggcorrplot)
 library(caret)
 library(glmnet)
+library(MASS)
 #remove the x
 pollutants["X"] = NULL
 
@@ -37,46 +38,21 @@ corr_matrix = cor(no_cat)
 #graph colored corr matrix
 ggcorrplot(corr_matrix)
 
-#show the qqPlotogram of all covariates that is not categorical
-qqPlot(pollutants$length)
-qqPlot(pollutants$POP_PCB1)
-qqPlot(pollutants$POP_PCB2)
-qqPlot(pollutants$POP_PCB3)
-qqPlot(pollutants$POP_PCB4)
-qqPlot(pollutants$POP_PCB5)
-qqPlot(pollutants$POP_PCB6)
-qqPlot(pollutants$POP_PCB7)
-qqPlot(pollutants$POP_PCB8)
-qqPlot(pollutants$POP_PCB9)
-qqPlot(pollutants$POP_PCB10)
-qqPlot(pollutants$POP_PCB11)
-qqPlot(pollutants$POP_dioxin1)
-qqPlot(pollutants$POP_dioxin2)
-qqPlot(pollutants$POP_dioxin3)
-qqPlot(pollutants$POP_furan1)
-qqPlot(pollutants$POP_furan2)
-qqPlot(pollutants$POP_furan3)
-qqPlot(pollutants$POP_furan4)
-qqPlot(pollutants$whitecell_count)
-qqPlot(pollutants$lymphocyte_pct)
-qqPlot(pollutants$monocyte_pct)
-qqPlot(pollutants$eosinophils_pct)
-qqPlot(pollutants$basophils_pct)
-qqPlot(pollutants$neutrophils_pct)
-qqPlot(pollutants$BMI)
-qqPlot(pollutants$ageyrs)
-qqPlot(pollutants$yrssmoke)
-qqPlot(pollutants$ln_lbxcot)
 
 #find the linearity (residual y against residual x)
 covariates = names(no_cat)
+#remove response name
+covariates = covariates[-1]
 for (name in covariates){
   y_model = lm(paste("length", "~", ".", "-", name), data = pollutants)
   x_model = lm(paste(name, "~", ".", "- length"), data = pollutants)
   y_resid = resid(y_model)
   x_resid = resid(x_model)
+  #residual QQ studentized - show the qqPlot of all covariates that is not categorical
+  studentized_model = lm(paste("length", "~", name), data = pollutants)
   #linearity
   scatterplot(x_resid, y_resid)
+  qqPlot(studres(studentized_model))
 }
 
 
@@ -206,7 +182,7 @@ train_data = pollutants[train_row,]
 train_model = lm(length ~ ., data = train_data)
 
 #step wise AIC on training data
-step_aic = step(train_model, direction = "both")
+step_aic = step(train_model, direction = "both", trace = FALSE)
 summary(step_aic)
 aic_pred = predict(step_aic, newdata = pollutants[-train_row,])
 
@@ -217,8 +193,13 @@ msd_aic = aic_sd / length(aic_true)
 rmse_aic = sqrt(msd_aic)
 rmse_aic
 
+#find the AIC model fit for homoscedasticity after removing multicolinearity
+par(mfrow=c(2,2))
+plot(step_aic)
+par(mfrow=c(1,1))
+
 #step wise BIC on training data
-step_bic = step(train_model, direction = "both", k = log(nrow(train_x)))
+step_bic = step(train_model, direction = "both", trace = FALSE, k = log(nrow(train_x)))
 summary(step_bic)
 bic_pred = predict(step_bic, newdata = pollutants[-train_row,])
 
@@ -229,10 +210,6 @@ msd_bic = bic_sd / length(bic_true)
 rmse_bic = sqrt(msd_bic)
 rmse_bic
 
-#find the AIC model fit for homoscedasticity after removing multicolinearity
-par(mfrow=c(2,2))
-plot(step_aic)
-par(mfrow=c(1,1))
 
 #find the BIC model fit for homoscedasticity after removing multicolinearity
 par(mfrow=c(2,2))
