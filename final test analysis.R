@@ -51,8 +51,8 @@ for (name in covariates){
   #residual QQ studentized - show the qqPlot of all covariates that is not categorical
   studentized_model = lm(paste("length", "~", name), data = pollutants)
   #linearity
-  scatterplot(x_resid, y_resid)
-  qqPlot(studres(studentized_model))
+  scatterplot(x_resid, y_resid, xlab = name)
+  qqPlot(studres(studentized_model), main = name)
 }
 
 
