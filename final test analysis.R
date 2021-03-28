@@ -185,7 +185,7 @@ eval_results <- function(true, predicted, df){
 }
 
 #k fold lasso
-lambdas <- 10^seq(2, -2, by = -.0001)
+lambdas <- 10^seq(2, -4, by = -.0001)
 lasso = cv.glmnet(train_x, train_y, alpha = 1, lambda = lambdas)
 best_lam = lasso$lambda.min
 best_lam
