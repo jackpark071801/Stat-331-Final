@@ -37,7 +37,7 @@ corr_matrix = cor(no_cat)
 #graph colored corr matrix
 ggcorrplot(corr_matrix)
 
-#show the qqPlotogram of all covariates
+#show the qqPlotogram of all covariates that is not categorical
 qqPlot(pollutants$length)
 qqPlot(pollutants$POP_PCB1)
 qqPlot(pollutants$POP_PCB2)
@@ -71,18 +71,14 @@ qqPlot(pollutants$ln_lbxcot)
 #find the linearity (residual y against residual x)
 covariates = names(no_cat)
 for (name in covariates){
-  y_model = lm(paste("length", "~", "."), data = pollutants)
+  y_model = lm(paste("length", "~", ".", "-", name), data = pollutants)
   x_model = lm(paste(name, "~", ".", "- length"), data = pollutants)
   y_resid = resid(y_model)
   x_resid = resid(x_model)
   #linearity
-  scatterplot(x_resid, y_resid, ylab = "Length", xlab = name)
+  scatterplot(x_resid, y_resid)
 }
 
-#find the model fit for homoscedasticity before remove multicolinearity
-par(mfrow=c(2,2))
-plot(model)
-par(mfrow=c(1,1))
 
 #remove covariates with VIF > 10 below:
 
@@ -131,6 +127,11 @@ model = lm(length ~ .,data = pollutants)
 summary(model)
 #show the VIF
 vif(model)
+
+#find the model fit for homoscedasticity before remove multicolinearity
+par(mfrow=c(2,2))
+plot(model)
+par(mfrow=c(1,1))
 
 #get set a dataset with no categorical covariates
 no_cat = pollutants
@@ -227,3 +228,13 @@ bic_sd = sum((bic_true - bic_pred)^2)
 msd_bic = bic_sd / length(bic_true)
 rmse_bic = sqrt(msd_bic)
 rmse_bic
+
+#find the AIC model fit for homoscedasticity after removing multicolinearity
+par(mfrow=c(2,2))
+plot(step_aic)
+par(mfrow=c(1,1))
+
+#find the BIC model fit for homoscedasticity after removing multicolinearity
+par(mfrow=c(2,2))
+plot(step_bic)
+par(mfrow=c(1,1))
