@@ -50,9 +50,12 @@ for (name in covariates){
   x_resid = resid(x_model)
   #residual QQ studentized - show the qqPlot of all covariates that is not categorical
   studentized_model = lm(paste("length", "~", name), data = pollutants)
+  #find the AIC model fit for homoscedasticity after removing multicolinearity
+  par(mfrow=c(2,2))
+  plot(studentized_model)
+  par(mfrow=c(1,1))
   #linearity
   scatterplot(x_resid, y_resid, xlab = name)
-  qqPlot(studres(studentized_model), main = name)
 }
 
 
