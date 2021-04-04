@@ -1,0 +1,335 @@
+---
+title: "final data exploration"
+author: "shawn"
+date: "03/04/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+##Includes packages and read in the data set
+```{r}
+#read in pollutants data set
+pollutants <- read.csv("C:/Users/Shawn/Downloads/pollutants.csv")
+library(car)
+library(ggplot2)
+library(ggcorrplot)
+library(caret)
+library(glmnet)
+library(MASS)
+library(tidyverse)
+library(rmarkdown)
+library(olsrr)
+```
+
+##Data set cleaning
+```{r}
+#remove the x
+pollutants$X = NULL
+```
+
+##Summary of the dataset
+```{r}
+#summary of data
+summary(pollutants)
+```
+
+
+##Getting the Correlation Matrix Heat Map
+```{r}
+#calculate correlation matrix before removing the multicolinearity covariates
+corr_mat = cor(pollutants)
+#graph colored corr matrix
+ggcorrplot(corr_mat, legend.title = "Correlation plot with Categoricals")
+```
+
+##get Correlation Matrix Heat map without categorical
+```{r}
+#get set a dataset with no categorical covariates
+no_cat = pollutants
+no_cat$edu_cat = NULL
+no_cat$race_cat = NULL
+no_cat$male = NULL
+no_cat$smokenow = NULL
+#calculate correlation matrix
+corr_matrix = cor(no_cat)
+#graph colored corr matrix
+ggcorrplot(corr_matrix, legend.title = "Correlation plot with no Categoricals")
+```
+
+##Graph the Boxplot and Histograms
+```{r}
+#graph boxplotograms
+boxplot(pollutants$length, xlab = "length", ylab = "Value")
+boxplot(pollutants$POP_PCB1, xlab = "POP_PCB1", ylab = "Value")
+boxplot(pollutants$POP_PCB2, xlab = "POP_PCB2", ylab = "Value")
+boxplot(pollutants$POP_PCB3, xlab = "POP_PCB3", ylab = "Value")
+boxplot(pollutants$POP_PCB4, xlab = "POP_PCB4", ylab = "Value")
+boxplot(pollutants$POP_PCB5, xlab = "POP_PCB5", ylab = "Value")
+boxplot(pollutants$POP_PCB6, xlab = "POP_PCB6", ylab = "Value")
+boxplot(pollutants$POP_PCB7, xlab = "POP_PCB7", ylab = "Value")
+boxplot(pollutants$POP_PCB8, xlab = "POP_PCB8", ylab = "Value")
+boxplot(pollutants$POP_PCB9, xlab = "POP_PCB9", ylab = "Value")
+boxplot(pollutants$POP_PCB10, xlab = "POP_PCB10", ylab = "Value")
+boxplot(pollutants$POP_PCB11, xlab = "POP_PCB11", ylab = "Value")
+boxplot(pollutants$POP_dioxin1, xlab = "POP_dioxin", ylab = "Value")
+boxplot(pollutants$POP_dioxin2, xlab = "POP_dioxin2", ylab = "Value")
+boxplot(pollutants$POP_dioxin3, xlab = "POP_dioxin3", ylab = "Value")
+boxplot(pollutants$POP_furan1, xlab = "POP_furan1", ylab = "Value")
+boxplot(pollutants$POP_furan2, xlab = "POP_furan2", ylab = "Value")
+boxplot(pollutants$POP_furan3, xlab = "POP_furan3", ylab = "Value")
+boxplot(pollutants$POP_furan4, xlab = "POP_furan4", ylab = "Value")
+boxplot(pollutants$whitecell_count, xlab = "whitecell_count", ylab = "Value")
+boxplot(pollutants$lymphocyte_pct, xlab = "lymphocyte_pct", ylab = "Value")
+boxplot(pollutants$monocyte_pct, xlab = "monocyte_pct", ylab = "Value")
+boxplot(pollutants$eosinophils_pct, xlab = "eosinophils_pct", ylab = "Value")
+boxplot(pollutants$basophils_pct, xlab = "basophils_pct", ylab = "Value")
+boxplot(pollutants$neutrophils_pct, xlab = "neutrophils_pct", ylab = "Value")
+boxplot(pollutants$BMI, xlab = "BMI", ylab = "Value")
+hist(pollutants$edu_cat)
+hist(pollutants$race_cat)
+hist(pollutants$male)
+boxplot(pollutants$ageyrs, xlab = "ageyrs", ylab = "Value")
+boxplot(pollutants$yrssmoke, xlab = "yrssmoke", ylab = "Value")
+hist(pollutants$smokenow)
+boxplot(pollutants$ln_lbxcot, xlab = "ln_lbxcot", ylab = "Value")
+```
+
+
+##Rename categoricals and set factors
+```{r}
+#turn categorical numbers into strings
+pollutants$male[pollutants$male == 1] = "Male"
+pollutants$male[pollutants$male == 0] = "Female"
+
+pollutants$smokenow[pollutants$smokenow == 1] = "Smokes"
+pollutants$smokenow[pollutants$smokenow == 0] = "No Smokes"
+
+pollutants$edu_cat[pollutants$edu_cat == 1] = "12 grade no dip below"
+pollutants$edu_cat[pollutants$edu_cat == 2] = "High School Grad/GED,Eqv"
+pollutants$edu_cat[pollutants$edu_cat == 3] = "Some College,AA degree"
+pollutants$edu_cat[pollutants$edu_cat == 4] = "College graduate"
+
+pollutants$race_cat[pollutants$race_cat == 1] = "Other race, mutli-racial"
+pollutants$race_cat[pollutants$race_cat == 2] = "Mexican American"
+pollutants$race_cat[pollutants$race_cat == 3] = "Non-Hispanic Black"
+pollutants$race_cat[pollutants$race_cat == 4] = "Non-Hispanic White"
+
+#factor the categorical
+pollutants$male = as.factor(pollutants$male)
+pollutants$smokenow = as.factor(pollutants$smokenow)
+pollutants$edu_cat = as.factor(pollutants$edu_cat)
+pollutants$race_cat = as.factor(pollutants$race_cat)
+```
+
+##See the effects of categorical on the response
+```{r}
+#see how length is different across Currently Smokes (Smokes) and currently does not smokes (No Smokes)
+ggplot(pollutants, aes(x = male, y = length, color = male)) +
+  geom_boxplot()+
+  geom_point(size = 2, position = position_jitter(width = 0.2)) +
+  stat_summary(fun = mean, geom = "point", shape = 20, size = 6, color = "blue")+
+  theme_classic() +
+  facet_grid(.~smokenow)
+
+#see how length is different across education
+ggplot(pollutants, aes(x = male, y = length, color = male)) +
+  geom_boxplot()+
+  geom_point(size = 2, position = position_jitter(width = 0.2)) +
+  stat_summary(fun = mean, geom = "point", shape = 20, size = 6, color = "blue")+
+  theme_classic() +
+  facet_grid(.~edu_cat)
+
+#see how length is different across races
+ggplot(pollutants, aes(x = male, y = length, color = male)) +
+  geom_boxplot()+
+  geom_point(size = 2, position = position_jitter(width = 0.2)) +
+  stat_summary(fun = mean, geom = "point", shape = 20, size = 6, color = "blue")+
+  theme_classic() +
+  facet_grid(.~race_cat)
+```
+
+##Remove VIF
+```{r}
+model = lm(length ~ .,data = pollutants)
+#show the VIF
+vif(model)
+
+
+#remove covariates with VIF > 10 below:
+
+#remove highest vif ~ 15047 
+pollutants$eosinophils_pct = NULL
+#fit new model
+model = lm(length ~ .,data = pollutants)
+#show the VIF
+vif(model)
+
+#remove highest vif eosinophils_pct ~ 15047 then POP_PCB5 ~ 59.718357
+pollutants$POP_PCB5 = NULL
+#fit new model
+model = lm(length ~ .,data = pollutants)
+#show the VIF
+vif(model)
+
+#remove highest vif eosinophils_pct ~ 15047 then POP_PCB5 ~ 59.718357 then POP_PCB1 ~ 32.255513
+pollutants$POP_PCB1 = NULL
+#fit new model
+model = lm(length ~ .,data = pollutants)
+#show the VIF
+vif(model)
+
+#remove highest vif eosinophils_pct ~ 15047 then POP_PCB5 ~ 59.718357 then POP_PCB1 ~ 32.255513 then POP_PCB2 ~ 22.564616
+pollutants$POP_PCB2 = NULL
+#fit new model
+model = lm(length ~ .,data = pollutants)
+#show the VIF
+vif(model)
+
+#remove highest vif eosinophils_pct ~ 15047 then POP_PCB5 ~ 59.718357 then POP_PCB1 ~ 32.255513 then POP_PCB2 ~ 22.564616
+# then POP_PCB4 ~ 14.260201
+pollutants$POP_PCB4 = NULL
+#fit new model
+model = lm(length ~ .,data = pollutants)
+#show the VIF
+vif(model)
+```
+
+##Scatterplot of the rest of the covariate
+```{r}
+#scatterplot after removing the high VIF covariates
+pdf("scatter.pdf", height=1000, width=1000)
+pairs(pollutants, cex.labels = 40, gap = 0.5)
+dev.off()
+knitr::include_graphics("scatter.pdf")
+#You maybe have to open this scatter.pdf in the files section of the RStudio and open the scatter.pdf with browser like firefox to be 
+# able to see the entire matrix because the amount of covariates there are. ~ 31MB on my PC.
+```
+
+##See how the model fits
+```{r}
+#find the model fit for homoscedasticity before remove multicolinearity
+par(mfrow=c(2,2))
+plot(model)
+par(mfrow=c(1,1))
+#actual vs predicted plot
+plot(predict(model), pollutants$length, xlab = "Predicted", ylab = "Actual")
+abline(a=0,b=1)
+outlierTest(model)
+#studentized Residual Plot
+ols_plot_resid_stud(model)$data
+#high leverage plot
+ols_plot_resid_lev(model)$data
+#find the cook distance plot bar plot
+ols_plot_cooksd_bar(model)$data
+#DFBETA
+ols_plot_dfbetas(model)
+#DEFITS
+ols_plot_dffits(model)$data
+```
+
+#find the best model with no interaction AIC
+```{r}
+stepwise_AIC = step(model, direction = "both", trace = FALSE)
+summary(stepwise_AIC)
+#See how the model assumptions fit
+par(mfrow=c(2,2))
+plot(stepwise_AIC)
+par(mfrow=c(1,1))
+#actual vs predicted plot
+plot(predict(stepwise_AIC), pollutants$length, xlab = "Predicted", ylab = "Actual")
+abline(a=0,b=1)
+outlierTest(stepwise_AIC)
+#studentized Residual Plot
+ols_plot_resid_stud(stepwise_AIC)$data
+#high leverage plot
+ols_plot_resid_lev(stepwise_AIC)$data
+#find the cook distance plot bar plot
+ols_plot_cooksd_bar(stepwise_AIC)$data
+#DFBETA
+ols_plot_dfbetas(stepwise_AIC)
+#DEFITS
+ols_plot_dffits(stepwise_AIC)$data
+```
+
+#find the best model with no interaction BIC
+```{r}
+stepwise_BIC = step(model, direction = "both", trace = FALSE, k=log(nrow(pollutants)))
+summary(stepwise_BIC)
+#See how the model assumptions fit
+par(mfrow=c(2,2))
+plot(stepwise_BIC)
+par(mfrow=c(1,1))
+#actual vs predicted plot
+plot(predict(stepwise_BIC), pollutants$length, xlab = "Predicted", ylab = "Actual")
+abline(a=0,b=1)
+outlierTest(stepwise_BIC)
+#studentized Residual Plot
+ols_plot_resid_stud(stepwise_BIC)$data
+#high leverage plot
+ols_plot_resid_lev(stepwise_BIC)$data
+#find the cook distance plot bar plot
+ols_plot_cooksd_bar(stepwise_BIC)$data
+#DFBETA
+ols_plot_dfbetas(stepwise_BIC)
+#DEFITS
+ols_plot_dffits(stepwise_BIC)$data
+```
+
+##Find the best model including interactions using backward stepwise elimination AIC
+```{r}
+aic_matrix = as.data.frame(model.matrix(stepwise_AIC))
+aic_matrix = aic_matrix[, -1]
+length = pollutants$length
+interact_aic = lm(length ~ .^2,data = aic_matrix)
+AIC_result = step(interact_aic, direction = "backward", trace = FALSE, k=2)
+summary(AIC_result)
+#See how the model assumptions fit
+par(mfrow=c(2,2))
+plot(AIC_result)
+par(mfrow=c(1,1))
+#actual vs predicted plot
+plot(predict(AIC_result), pollutants$length, xlab = "Predicted", ylab = "Actual")
+abline(a=0,b=1)
+outlierTest(AIC_result)
+#studentized Residual Plot
+ols_plot_resid_stud(AIC_result)$data
+#high leverage plot
+ols_plot_resid_lev(AIC_result)$data
+#find the cook distance plot bar plot
+ols_plot_cooksd_bar(AIC_result)$data
+#DFBETA
+ols_plot_dfbetas(AIC_result)
+#DEFITS
+ols_plot_dffits(AIC_result)$data
+```
+
+##Find the best model including interactions using backward stepwise elimination BIC
+```{r}
+bic_matrix = as.data.frame(model.matrix(stepwise_BIC))
+bic_matrix = bic_matrix[, -1]
+length = pollutants$length
+interact_bic = lm(length ~ .^2,data = bic_matrix)
+BIC_result = step(interact_bic, direction = "backward", trace = FALSE, k=log(nrow(pollutants)))
+summary(BIC_result)
+#See how the model assumptions fit
+par(mfrow=c(2,2))
+plot(BIC_result)
+par(mfrow=c(1,1))
+#actual vs predicted plot
+plot(predict(BIC_result), pollutants$length, xlab = "Predicted", ylab = "Actual")
+abline(a=0,b=1)
+outlierTest(BIC_result)
+#studentized Residual Plot
+ols_plot_resid_stud(BIC_result)$data
+#high leverage plot
+ols_plot_resid_lev(BIC_result)$data
+#find the cook distance plot bar plot
+ols_plot_cooksd_bar(BIC_result)$data
+#DFBETA
+ols_plot_dfbetas(BIC_result)
+#DEFITS
+ols_plot_dffits(BIC_result)$data
+```
